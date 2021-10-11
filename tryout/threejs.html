@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💡</title>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    </style>
+
+    <script type="module">
+      import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.module.js";
+      import { OrbitControls } from "/three.js-master/examples/jsm/controls/OrbitControls.js";
+      import { OBJLoader } from "/three.js-master/examples/jsm/loaders/OBJLoader.js";
+      import { MTLLoader } from "/three.js-master/examples/jsm/loaders/MTLLoader.js";
+
+      //Shader
+      const _VS = `
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `;
+
+      const _FS = `
+        void main() {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+     `;
+
+      //ThreeJS render
+      const init = () => {
+        const canvas = document.querySelector("#canvas");
+        const renderer = new THREE.WebGLRenderer({ canvas });
+
+        //Set Camera
+        const fov = 75;
+        const aspect = 2;
+        const near = 0.1;
+        const far = 5;
+        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+        camera.position.z = 2;
+
+        //Set Scene
+        const scene = new THREE.Scene();
+
+        //Set Controls
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 0, 0);
+        controls.update();
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+
+        //Set lightning
+        {
+          //Directional
+          const color = 0xffffff;
+          const intensity = 1;
+          const light = new THREE.DirectionalLight(color, intensity);
+          light.position.set(-1, 2, 4);
+          scene.add(light);
+
+          //Ambient
+          const ambLight = new THREE.AmbientLight(color, 0.5);
+          ambLight.position.set(-1, 2, 4);
+          scene.add(ambLight);
+        }
+
+        //Render Object
+        {
+          const objLoader = new OBJLoader();
+          const mtlLoader = new MTLLoader();
+          mtlLoader.load("rock.mtl", (mtl) => {
+            mtl.preload();
+            objLoader.setMaterials(mtl);
+            objLoader.load("rock.obj", (root) => {
+              scene.add(root);
+            });
+          });
+        }
+
+        //Set canvas size
+        const resizeRendererToDisplaySize = (renderer) => {
+          const canvas = renderer.domElement;
+          const width = canvas.clientWidth;
+          const height = canvas.clientHeight;
+          const needResize = canvas.width !== width || canvas.height !== height;
+          if (needResize) {
+            renderer.setSize(width, height, false);
+          }
+          return needResize;
+        };
+
+        //Render scene function
+        const render = (time) => {
+          time *= 0.001; // convert time to seconds
+
+          if (resizeRendererToDisplaySize(renderer)) {
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+          }
+          controls.update();
+
+          renderer.render(scene, camera);
+          requestAnimationFrame(render);
+        };
+
+        requestAnimationFrame(render);
+      };
+
+      init();
+    </script>
+  </body>
+</html>

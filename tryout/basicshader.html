@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💡</title>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    </style>
+
+    <script type="module">
+      import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.module.js";
+      //Shader
+      const _VS = `
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `;
+
+      const _FS = `
+        void main() {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+     `;
+
+      //ThreeJS render
+      const init = () => {
+        const canvas = document.querySelector("#canvas");
+        const renderer = new THREE.WebGLRenderer({ canvas });
+
+        //Set Camera
+        const fov = 75;
+        const aspect = 2; // the canvas default
+        const near = 0.1;
+        const far = 5;
+        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+        camera.position.z = 2;
+
+        //Set Scene
+        const scene = new THREE.Scene();
+
+        //Set lightning
+        {
+          const color = 0xffffff;
+          const intensity = 1;
+          const light = new THREE.DirectionalLight(color, intensity);
+          light.position.set(-1, 2, 4);
+          scene.add(light);
+        }
+
+        const makeInstance = (geometry, color, x) => {
+          const material = new THREE.ShaderMaterial({
+            uniforms: {},
+            vertexShader: _VS,
+            fragmentShader: _FS,
+          });
+          const shape = new THREE.Mesh(geometry, material);
+          scene.add(shape);
+          shape.position.x = x;
+          return shape;
+        };
+
+        const shapes = [
+          makeInstance(
+            new THREE.CylinderGeometry(0, 0.3, 0.8, 50),
+            0x44aa88,
+            0
+          ),
+          makeInstance(new THREE.DodecahedronGeometry(0.5, 1), 0x8844aa, -2),
+          makeInstance(new THREE.OctahedronGeometry(0.5), 0xaa8844, 2),
+        ];
+
+        //Set canvas size
+        const resizeRendererToDisplaySize = (renderer) => {
+          const canvas = renderer.domElement;
+          const width = canvas.clientWidth;
+          const height = canvas.clientHeight;
+          const needResize = canvas.width !== width || canvas.height !== height;
+          if (needResize) {
+            renderer.setSize(width, height, false);
+          }
+          return needResize;
+        };
+
+        //Render scene function
+        const render = (time) => {
+          time *= 0.001; // convert time to seconds
+
+          if (resizeRendererToDisplaySize(renderer)) {
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+          }
+
+          shapes.forEach((shape, ndx) => {
+            const speed = 1 + ndx * 0.1;
+            const rot = time * speed;
+            shape.rotation.x = rot;
+            shape.rotation.y = rot;
+          });
+
+          renderer.render(scene, camera);
+          requestAnimationFrame(render);
+        };
+
+        requestAnimationFrame(render);
+      };
+
+      init();
+    </script>
+  </body>
+</html>
